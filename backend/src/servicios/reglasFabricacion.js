@@ -10,4 +10,7 @@ export const REGLAS = {
     Aluminio: 2,
     PVC: 5,
   },
+
+  //El porcentaje de merma es de 5%
+  mermaPorcentaje:5,
 };

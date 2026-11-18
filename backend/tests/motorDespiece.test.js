@@ -185,15 +185,21 @@ test("calcularDespiece lanza error si el alto es 3001", () => {
 //Validar material y aluminio
 
 test("calcularDespiece lanza error si el material es Madera", () => {
-  expect(() => calcularDespiece(1780, 1120, "Madera")).toThrow("Solo se acepta PVC o Aluminio");
+  expect(() => calcularDespiece(1780, 1120, "Madera")).toThrow(
+    "Solo se acepta PVC o Aluminio",
+  );
 });
 
 test("calcularDespiece lanza error si el material es undefined", () => {
-  expect(() => calcularDespiece(1780, 1120, undefined)).toThrow("Solo se acepta PVC o Aluminio");
+  expect(() => calcularDespiece(1780, 1120, undefined)).toThrow(
+    "Solo se acepta PVC o Aluminio",
+  );
 });
 
 test("calcularDespiece lanza error si el material es aluminio", () => {
-  expect(() => calcularDespiece(1780, 1120, "aluminio")).toThrow("Solo se acepta PVC o Aluminio");
+  expect(() => calcularDespiece(1780, 1120, "aluminio")).toThrow(
+    "Solo se acepta PVC o Aluminio",
+  );
 });
 
 test("calcularDespiece no lanza error si el material es Aluminio", () => {
@@ -245,3 +251,5 @@ test("calcularDespiece devuelve 2 verticales de 1115 mm en PVC", () => {
 test("calcularDespiece no lanza error si el material es PVC", () => {
   expect(() => calcularDespiece(1780, 1120, "PVC")).not.toThrow();
 });
+
+

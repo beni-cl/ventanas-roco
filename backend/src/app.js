@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import { sequelize } from "./config/baseDatos.js";
+import calculoRutas from "./rutas/calculoRutas.js";
+
 
 const app = express();
 app.use(express.json());
@@ -19,6 +21,8 @@ app.get("/api/salud", async (req, res) => {
     res.status(500).json({ estado: "error", baseDatos: "sin conexión" });
   }
 });
+
+app.use("/api/despiece", calculoRutas);
 
 const PUERTO = process.env.PORT || 8080;
 

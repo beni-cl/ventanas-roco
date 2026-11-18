@@ -37,3 +37,44 @@ export function calcularPrecioFinal(costoNeto, margenPorcentaje) {
 }
 
 
+function convertirANumero(valor) {
+  if (typeof valor === "number") {
+    return valor;
+  }
+  if (typeof valor === "string" && valor.trim() !== "") {
+    return Number(valor);
+  }
+  return NaN;
+}
+
+export function calcularCostoMateriales(lineas) {
+  if (!Array.isArray(lineas)) {
+    throw new Error("Los materiales deben ser una lista");
+  }
+  if (lineas.length === 0) {
+    throw new Error("Debe haber al menos un material");
+  }
+
+  let total = 0;
+  for (const [indice, linea] of lineas.entries()) {
+    const numero = indice + 1;
+
+    if (linea === null || typeof linea !== "object") {
+      throw new Error(`Material ${numero}: los datos no son validos`);
+    }
+
+    const cantidad = convertirANumero(linea.cantidad);
+    const precio = convertirANumero(linea.precio_costo);
+
+    if (!Number.isFinite(cantidad) || cantidad <= 0) {
+      throw new Error(`Material ${numero}: la cantidad debe ser un numero mayor que 0`);
+    }
+    if (!Number.isFinite(precio) || precio < 0) {
+      throw new Error(`Material ${numero}: el precio debe ser un numero mayor o igual a 0`);
+    }
+
+    total += cantidad * precio;
+  }
+
+  return Math.round(total * 100) / 100;
+}

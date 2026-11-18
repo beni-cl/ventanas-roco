@@ -3,5 +3,11 @@
 export const REGLAS = {
   medidaMinimaMm: 500,
   medidaMaximaMm: 3000,
-};
 
+
+  // Descuento por material. Pendiente de confirmar: si la medida del cliente es la del hueco.
+  descuentoHuecoMm: {
+    Aluminio: 2,
+    PVC: 5,
+  },
+};

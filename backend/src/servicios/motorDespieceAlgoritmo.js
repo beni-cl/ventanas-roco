@@ -1,9 +1,7 @@
 import { REGLAS } from "./reglasFabricacion.js";
 
-
 // Se valida si es un numero y si esta dentro del rango
 export function validarMedidas(ancho, alto) {
-
   if (!Number.isFinite(ancho)) {
     throw new Error("El valor del ancho no es un numero");
   }

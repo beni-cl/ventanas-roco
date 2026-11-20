@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const CARPETA_POR_DEFECTO = path.join(process.cwd(), "logs");
+const ZONA_HORARIA = "America/Santiago";
 
 const ACCIONES_VALIDAS = [
   "UPDATE_COTIZACION_PRECIO",
@@ -10,6 +11,27 @@ const ACCIONES_VALIDAS = [
 
 function esObjeto(valor) {
   return valor !== null && typeof valor === "object" && !Array.isArray(valor);
+}
+
+function fechaEnChile(fecha) {
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ZONA_HORARIA,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+    timeZoneName: "longOffset",
+  }).formatToParts(fecha);
+
+  const valor = (tipo) => partes.find((parte) => parte.type === tipo).value;
+  const dia = `${valor("year")}-${valor("month")}-${valor("day")}`;
+  const hora = `${valor("hour")}:${valor("minute")}:${valor("second")}`;
+  const diferencia = valor("timeZoneName").replace("GMT", "");
+
+  return { dia, fechaIso: `${dia}T${hora}${diferencia}` };
 }
 
 function rutaDelDia(carpeta, dia) {
@@ -55,8 +77,7 @@ export function registrarAuditoria(
     throw new Error("La fecha no es valida");
   }
 
-  const fechaIso = fechaActual.toISOString();
-  const dia = fechaIso.slice(0, 10);
+    const { dia, fechaIso } = fechaEnChile(fechaActual);
 
   fs.mkdirSync(carpeta, { recursive: true });
   const ruta = rutaDelDia(carpeta, dia);

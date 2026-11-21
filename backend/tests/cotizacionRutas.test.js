@@ -12,6 +12,7 @@ import {
   sequelize,
 } from "../src/modelos/index.js";
 import { hashearPassword } from "../src/servicios/autenticacion.js";
+import { leerAuditoria } from "../src/servicios/auditoria.js";
 
 process.env.JWT_SECRET ??= "clave_de_prueba_no_usar_en_produccion";
 
@@ -346,5 +347,211 @@ describe("PUT /api/cotizaciones/:id/revisar", () => {
       .put("/api/cotizaciones/abc/revisar")
       .set(conToken(tokenFabricante));
     expect(respuesta.status).toBe(400);
+  });
+  describe("PUT /api/cotizaciones/:id/enviar", () => {
+    let idPendiente;
+    let idEnRevision;
+    let idEnRevision2;
+    let idSerieMala;
+    let idVidrioMalo;
+
+    const revisar = (id) =>
+      request(app)
+        .put(`/api/cotizaciones/${id}/revisar`)
+        .set(conToken(tokenFabricante));
+    const enviar = (id, cuerpo, token = tokenFabricante) =>
+      request(app)
+        .put(`/api/cotizaciones/${id}/enviar`)
+        .set(conToken(token))
+        .send(cuerpo);
+    const cuerpoBueno = {
+      margen_aplicado: 30,
+      mano_obra: 50000,
+      instalacion: 30000,
+    };
+
+    beforeAll(async () => {
+      idPendiente = (await solicitar(tokenCliente)).body.id_cotizacion;
+      idEnRevision = (await solicitar(tokenCliente)).body.id_cotizacion;
+      idEnRevision2 = (await solicitar(tokenCliente)).body.id_cotizacion;
+      idSerieMala = (
+        await solicitar(tokenCliente, [
+          { ...ventana(), tipoPerfil: "Serie Inexistente" },
+        ])
+      ).body.id_cotizacion;
+      idVidrioMalo = (
+        await solicitar(tokenCliente, [
+          { ...ventana(), tipoVidrio: "Vidrio Inventado" },
+        ])
+      ).body.id_cotizacion;
+      for (const id of [
+        idEnRevision,
+        idEnRevision2,
+        idSerieMala,
+        idVidrioMalo,
+      ]) {
+        await revisar(id);
+      }
+    });
+
+    test("un cliente no puede enviar precios (403)", async () => {
+      const respuesta = await enviar(idEnRevision, cuerpoBueno, tokenCliente);
+      expect(respuesta.status).toBe(403);
+    });
+
+    test("sin token responde 401", async () => {
+      const respuesta = await request(app)
+        .put(`/api/cotizaciones/${idEnRevision}/enviar`)
+        .send(cuerpoBueno);
+      expect(respuesta.status).toBe(401);
+    });
+
+    test("una cotizacion que no esta En Revisión no se puede enviar (409)", async () => {
+      const respuesta = await enviar(idPendiente, cuerpoBueno);
+      expect(respuesta.status).toBe(409);
+      expect(respuesta.body.error).toBe(
+        "No se puede pasar de Pendiente a Respondida",
+      );
+    });
+
+    test("el fabricante envia y el servidor calcula costo y precio", async () => {
+      // Con los precios de ejemplo de la migracion 003:
+      // materiales 201142 -> con merma 5% 211199.1 -> + 50000 + 30000 = 291199.1 -> con margen 30% 378558.83
+      const respuesta = await enviar(idEnRevision, cuerpoBueno);
+      expect(respuesta.status).toBe(200);
+      expect(respuesta.body.estado).toBe("Respondida");
+      expect(respuesta.body.congelado).toBe(true);
+      expect(respuesta.body.costo_neto).toBeCloseTo(291199.1, 2);
+      expect(respuesta.body.precio_final).toBeCloseTo(378558.83, 2);
+      expect(respuesta.body.margen_aplicado).toBe(30);
+    });
+
+    test("el cliente ve el precio final pero no el costo ni el margen", async () => {
+      const lista = await request(app)
+        .get("/api/cotizaciones/mias")
+        .set(conToken(tokenCliente));
+      const cotizacion = lista.body.find(
+        (c) => c.id_cotizacion === idEnRevision,
+      );
+      expect(cotizacion.estado).toBe("Respondida");
+      expect(cotizacion.precio_final).toBeCloseTo(378558.83, 2);
+      expect(cotizacion.costo_neto).toBeUndefined();
+
+      const detalle = await request(app)
+        .get(`/api/cotizaciones/${idEnRevision}`)
+        .set(conToken(tokenCliente));
+      expect(detalle.body.precio_final).toBeCloseTo(378558.83, 2);
+      expect(detalle.body.margen_aplicado).toBeUndefined();
+    });
+
+    test("una cotizacion Respondida queda congelada y no se envia de nuevo (409)", async () => {
+      const respuesta = await enviar(idEnRevision, { margen_aplicado: 5 });
+      expect(respuesta.status).toBe(409);
+      expect(respuesta.body.error).toBe(
+        "La cotizacion esta congelada y no se puede modificar",
+      );
+    });
+
+    test("rechaza un margen negativo (400)", async () => {
+      const respuesta = await enviar(idPendiente, {
+        ...cuerpoBueno,
+        margen_aplicado: -5,
+      });
+      expect(respuesta.status).toBe(400);
+    });
+
+    test("rechaza si falta el margen (400)", async () => {
+      const respuesta = await enviar(idPendiente, { mano_obra: 1000 });
+      expect(respuesta.status).toBe(400);
+      expect(respuesta.body.error).toBe("margen_aplicado es obligatorio");
+    });
+
+    test("rechaza un margen que no es numero (400)", async () => {
+      const respuesta = await enviar(idPendiente, {
+        ...cuerpoBueno,
+        margen_aplicado: "abc",
+      });
+      expect(respuesta.status).toBe(400);
+    });
+
+    test("rechaza un margen mayor a 999.99 (400)", async () => {
+      const respuesta = await enviar(idPendiente, {
+        ...cuerpoBueno,
+        margen_aplicado: 1000,
+      });
+      expect(respuesta.status).toBe(400);
+    });
+
+    test("rechaza una mano de obra negativa (400)", async () => {
+      const respuesta = await enviar(idPendiente, {
+        ...cuerpoBueno,
+        mano_obra: -1,
+      });
+      expect(respuesta.status).toBe(400);
+    });
+
+    test("un cuerpo invalido no cambia la cotizacion", async () => {
+      await enviar(idPendiente, { margen_aplicado: -5 });
+      const guardada = await Cotizacion.findByPk(idPendiente);
+      expect(guardada.estado).toBe("Pendiente");
+      expect(guardada.congelado).toBe(false);
+      expect(guardada.precio_final).toBeNull();
+    });
+
+    test("registra la auditoria con usuario, accion y estados", async () => {
+      const dia = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Santiago",
+      }).format(new Date());
+      const registro = leerAuditoria(dia).find(
+        (r) =>
+          r.id_usuario === idFabricante &&
+          r.estado_posterior.estado === "Respondida" &&
+          Math.abs(r.estado_posterior.precio_final - 378558.83) < 0.01,
+      );
+      expect(registro).toBeDefined();
+      expect(registro.accion).toBe("UPDATE_COTIZACION_PRECIO");
+      expect(registro.estado_anterior.estado).toBe("En Revisión");
+      expect(registro.estado_anterior.precio_final).toBeNull();
+    });
+
+    test("ignora un precio_final o costo_neto enviado por el fabricante", async () => {
+      const respuesta = await enviar(idEnRevision2, {
+        margen_aplicado: 10,
+        mano_obra: 0,
+        instalacion: 0,
+        precio_final: 1,
+        costo_neto: 1,
+      });
+      expect(respuesta.status).toBe(200);
+      expect(respuesta.body.costo_neto).toBeGreaterThan(1000);
+      expect(respuesta.body.precio_final).toBeCloseTo(
+        respuesta.body.costo_neto * 1.1,
+        1,
+      );
+    });
+
+    test("con una serie que no esta en el catalogo responde 422 y no cambia nada", async () => {
+      const respuesta = await enviar(idSerieMala, cuerpoBueno);
+      expect(respuesta.status).toBe(422);
+      const guardada = await Cotizacion.findByPk(idSerieMala);
+      expect(guardada.estado).toBe("En Revisión");
+      expect(guardada.congelado).toBe(false);
+    });
+
+    test("con un vidrio que no esta en el inventario responde 422", async () => {
+      const respuesta = await enviar(idVidrioMalo, cuerpoBueno);
+      expect(respuesta.status).toBe(422);
+      expect(respuesta.body.error).toMatch(/vidrio/);
+    });
+
+    test("una cotizacion que no existe responde 404", async () => {
+      const respuesta = await enviar(999999, cuerpoBueno);
+      expect(respuesta.status).toBe(404);
+    });
+
+    test("un id invalido responde 400", async () => {
+      const respuesta = await enviar("abc", cuerpoBueno);
+      expect(respuesta.status).toBe(400);
+    });
   });
 });

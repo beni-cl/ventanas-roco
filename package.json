@@ -1,0 +1,12 @@
+{
+  "name": "ventanas-roco",
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "build": "npm --prefix frontend install --include=dev && npm --prefix frontend run build",
+    "heroku-postbuild": "npm --prefix backend install --omit=dev && npm run build",
+    "start": "npm --prefix backend run start:produccion"
+  }
+}

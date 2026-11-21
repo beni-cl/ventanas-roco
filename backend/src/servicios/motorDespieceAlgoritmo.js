@@ -1,6 +1,5 @@
 import { REGLAS } from "./reglasFabricacion.js";
 
-// Se valida si es un numero y si esta dentro del rango
 export function validarMedidas(ancho, alto) {
   if (!Number.isFinite(ancho)) {
     throw new Error("El valor del ancho no es un numero");
@@ -29,16 +28,13 @@ export function calcularDespiece(ancho, alto, material) {
     throw new Error("Solo se acepta PVC o Aluminio");
   }
 
-  //Se busca el material que es y se aplica descuento
   const descuento = REGLAS.descuentoHuecoMm[material];
   const anchoFinal = ancho - descuento;
   const altoFinal = alto - descuento;
 
-  //aqui se calcula el vidrio y se redondea a 2 decimales
   const vidrioM2 = (anchoFinal / 1000) * (altoFinal / 1000);
   const vidrioRedondeado = Math.round(vidrioM2 * 100) / 100;
 
-  //aqui se calcula el perfil y redondea a 2 decimales
   const perfilMm = 2 * anchoFinal + 2 * altoFinal;
   const perfilM = Math.round((perfilMm / 1000) * 100) / 100;
 

@@ -1,16 +1,24 @@
 import { Op } from "sequelize";
-import { Material, Serie, VentanaConfigurada, Despiece } from "../modelos/index.js";
+import {
+  Material,
+  Serie,
+  VentanaConfigurada,
+  Despiece,
+} from "../modelos/index.js";
 import { ErrorHttp } from "./errorHttp.js";
-import { calcularCostoMaterialesVentanas, promedioPrecios } from "./costeoCalculo.js";
+import {
+  calcularCostoMaterialesVentanas,
+  promedioPrecios,
+} from "./costeoCalculo.js";
 
 const CATEGORIAS_PERFIL = ["PerfilAluminio", "PerfilPVC"];
 
-// Para que un % o un _ escrito por el cliente no se use como comodin en la busqueda
 const escaparLike = (texto) => texto.replace(/[\\%_]/g, "\\$&");
 
-// Busca en el catalogo los precios de cada ventana de la cotizacion y calcula
-// el costo de materiales. Si falta algo en el catalogo responde 422.
-export async function calcularMaterialesDeCotizacion(idCotizacion, transaccion) {
+export async function calcularMaterialesDeCotizacion(
+  idCotizacion,
+  transaccion,
+) {
   const ventanas = await VentanaConfigurada.findAll({
     where: { id_cotizacion: idCotizacion },
     include: [{ model: Despiece, as: "despiece" }],
@@ -25,27 +33,38 @@ export async function calcularMaterialesDeCotizacion(idCotizacion, transaccion) 
   for (const [indice, ventana] of ventanas.entries()) {
     const numero = indice + 1;
     if (!ventana.despiece) {
-      throw new ErrorHttp(422, `Ventana ${numero}: no tiene despiece calculado`);
+      throw new ErrorHttp(
+        422,
+        `Ventana ${numero}: no tiene despiece calculado`,
+      );
     }
 
-    // tipo_perfil guarda el nombre de la serie tal como esta en el catalogo
     const serie = await Serie.findOne({
       where: { nombre: ventana.tipo_perfil },
       transaction: transaccion,
     });
     if (!serie) {
-      throw new ErrorHttp(422, `Ventana ${numero}: la serie "${ventana.tipo_perfil}" no existe en el catalogo`);
+      throw new ErrorHttp(
+        422,
+        `Ventana ${numero}: la serie "${ventana.tipo_perfil}" no existe en el catalogo`,
+      );
     }
 
     const perfiles = await Material.findAll({
-      where: { id_serie: serie.id_serie, categoria: { [Op.in]: CATEGORIAS_PERFIL }, activo: true },
+      where: {
+        id_serie: serie.id_serie,
+        categoria: { [Op.in]: CATEGORIAS_PERFIL },
+        activo: true,
+      },
       transaction: transaccion,
     });
     if (perfiles.length === 0) {
-      throw new ErrorHttp(422, `Ventana ${numero}: la serie "${serie.nombre}" no tiene perfiles con precio`);
+      throw new ErrorHttp(
+        422,
+        `Ventana ${numero}: la serie "${serie.nombre}" no tiene perfiles con precio`,
+      );
     }
 
-    // Si varios vidrios coinciden con el nombre, se usa el primero cargado (PROVISORIO)
     const vidrio = await Material.findOne({
       where: {
         categoria: "Vidrio",
@@ -56,7 +75,10 @@ export async function calcularMaterialesDeCotizacion(idCotizacion, transaccion) 
       transaction: transaccion,
     });
     if (!vidrio) {
-      throw new ErrorHttp(422, `Ventana ${numero}: no hay un vidrio "${ventana.tipo_vidrio}" en el inventario`);
+      throw new ErrorHttp(
+        422,
+        `Ventana ${numero}: no hay un vidrio "${ventana.tipo_vidrio}" en el inventario`,
+      );
     }
 
     datos.push({

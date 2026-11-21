@@ -74,7 +74,6 @@ export function prepararVentanas(ventanas) {
       );
     }
 
-    // El motor valida ancho, alto y material; solo le anteponemos el numero de ventana
     let despiece;
     try {
       despiece = calcularDespiece(

@@ -3,12 +3,8 @@ import { QueryTypes } from "sequelize";
 import { Cotizacion, VentanaConfigurada, Despiece } from "../modelos/index.js";
 import { REGLAS } from "./reglasFabricacion.js";
 
-// Guarda una cotizacion completa (cotizacion + ventanas + despieces) en UNA transaccion:
-// si algo falla en el medio, no queda nada a medias en la base.
-// "ventanas" debe venir ya validada por prepararVentanas.
 export async function guardarCotizacion(idCliente, ventanas) {
   return sequelize.transaction(async (transaccion) => {
-    // Pedimos el siguiente id a la secuencia para armar el numero de orden antes de insertar
     const [fila] = await sequelize.query(
       "SELECT nextval(pg_get_serial_sequence('cotizaciones', 'id_cotizacion')) AS id",
       { type: QueryTypes.SELECT, transaction: transaccion },

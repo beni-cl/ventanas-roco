@@ -1,7 +1,5 @@
 import { calcularCostoMateriales } from "./calculadorCostosEngine.js";
 
-// Promedio simple del precio de los perfiles de una serie (marco y hoja). PROVISORIO:
-// con los precios reales de Gerardo habria que cobrar cada pieza con su perfil.
 export function promedioPrecios(materiales) {
   if (!Array.isArray(materiales) || materiales.length === 0) {
     throw new Error("No hay materiales para promediar el precio");
@@ -9,7 +7,6 @@ export function promedioPrecios(materiales) {
   let suma = 0;
   for (const material of materiales) {
     const valor = material?.precio_costo;
-    // Number(null) da 0 y Number("") da 0: se revisan antes para que no pasen como "gratis"
     if (valor === null || valor === undefined || valor === "") {
       throw new Error("El precio de un material no es valido");
     }
@@ -22,8 +19,6 @@ export function promedioPrecios(materiales) {
   return suma / materiales.length;
 }
 
-// Costo de materiales de toda la cotizacion: perfil (metros x precio) + vidrio (m2 x precio),
-// multiplicado por la cantidad de cada ventana. Todavia SIN merma: la agrega calcularCostoNeto.
 export function calcularCostoMaterialesVentanas(ventanas) {
   if (!Array.isArray(ventanas) || ventanas.length === 0) {
     throw new Error("La cotizacion no tiene ventanas");

@@ -56,8 +56,6 @@ export const Usuario = sequelize.define(
   { ...base, tableName: "usuarios" },
 );
 
-//  Catálogo e inventario
-
 export const Serie = sequelize.define(
   "Serie",
   {
@@ -84,14 +82,12 @@ export const Material = sequelize.define(
     id_serie: DataTypes.INTEGER,
     nombre_insumo: { type: DataTypes.STRING(100), allowNull: false },
     categoria: { type: DataTypes.STRING(30), allowNull: false },
-    precio_costo: { type: DataTypes.DECIMAL(10, 2), allowNull: false }, // SOLO Fabricante
+    precio_costo: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
     unidad_medida: { type: DataTypes.STRING(20), allowNull: false },
     activo: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
   },
   { ...base, tableName: "materiales_inventario" },
 );
-
-// Cotizaciones
 
 export const Cotizacion = sequelize.define(
   "Cotizacion",
@@ -168,7 +164,7 @@ export const Despiece = sequelize.define(
       allowNull: false,
       unique: true,
     },
-    cortes_json: { type: DataTypes.JSONB, allowNull: false }, // dato no estructurado
+    cortes_json: { type: DataTypes.JSONB, allowNull: false },
     superficie_vidrio_m2: { type: DataTypes.DECIMAL(8, 2), allowNull: false },
     merma_aplicada: { type: DataTypes.DECIMAL(5, 2), allowNull: false },
   },
@@ -191,8 +187,6 @@ export const DespieceMaterial = sequelize.define(
   { ...base, tableName: "despiece_material" },
 );
 
-// Avisos
-
 export const Notificacion = sequelize.define(
   "Notificacion",
   {
@@ -209,9 +203,6 @@ export const Notificacion = sequelize.define(
   { ...base, tableName: "notificaciones" },
 );
 
-// ========== Relaciones (las flechas del modelo E-R) ==========
-
-// RBAC: roles <-> permisos (N a M) y usuarios -> rol
 Rol.belongsToMany(Permiso, {
   through: RolPermiso,
   foreignKey: "id_rol",
@@ -227,11 +218,9 @@ Permiso.belongsToMany(Rol, {
 Rol.hasMany(Usuario, { foreignKey: "id_rol", as: "usuarios" });
 Usuario.belongsTo(Rol, { foreignKey: "id_rol", as: "rol" });
 
-// Catálogo: una serie tiene muchos materiales
 Serie.hasMany(Material, { foreignKey: "id_serie", as: "materiales" });
 Material.belongsTo(Serie, { foreignKey: "id_serie", as: "serie" });
 
-// Cotizaciones: cliente y fabricante son usuarios
 Usuario.hasMany(Cotizacion, { foreignKey: "id_cliente", as: "cotizaciones" });
 Cotizacion.belongsTo(Usuario, { foreignKey: "id_cliente", as: "cliente" });
 Cotizacion.belongsTo(Usuario, {
@@ -239,7 +228,6 @@ Cotizacion.belongsTo(Usuario, {
   as: "fabricante",
 });
 
-// Cotización -> ventanas -> despiece (1 a 1) -> materiales usados (N a M)
 Cotizacion.hasMany(VentanaConfigurada, {
   foreignKey: "id_cotizacion",
   as: "ventanas",
@@ -270,7 +258,6 @@ DespieceMaterial.belongsTo(Material, {
   as: "material",
 });
 
-// Notificaciones
 Usuario.hasMany(Notificacion, {
   foreignKey: "id_usuario",
   as: "notificaciones",

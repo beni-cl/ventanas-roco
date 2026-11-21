@@ -1,4 +1,3 @@
-
 import express from "express";
 import path from "node:path";
 import fs from "node:fs";
@@ -15,7 +14,8 @@ import fabricanteRutas from "./rutas/fabricanteRutas.js";
 const carpetaActual = path.dirname(fileURLToPath(import.meta.url));
 
 const carpetaFrontend =
-  process.env.FRONTEND_DIST || path.join(carpetaActual, "..", "..", "frontend", "dist");
+  process.env.FRONTEND_DIST ||
+  path.join(carpetaActual, "..", "..", "frontend", "dist");
 
 export function crearApp() {
   const app = express();
@@ -40,13 +40,13 @@ export function crearApp() {
   app.use("/api/cotizaciones", cotizacionRutas);
   app.use("/api/fabricante", fabricanteRutas);
 
-  // Cualquier /api desconocida responde JSON 404 (antes de las pantallas de React)
   app.use("/api", rutaNoEncontrada);
 
-  // Si existe el React compilado, Express entrega las pantallas (un solo servicio)
   if (fs.existsSync(path.join(carpetaFrontend, "index.html"))) {
     app.use(express.static(carpetaFrontend));
-    app.get("/{*ruta}", (req, res) => res.sendFile(path.join(carpetaFrontend, "index.html")));
+    app.get("/{*ruta}", (req, res) =>
+      res.sendFile(path.join(carpetaFrontend, "index.html")),
+    );
   } else {
     app.get("/", (req, res) => {
       res.json({ mensaje: "API de Ventanas Roco", prueba: "/api/salud" });

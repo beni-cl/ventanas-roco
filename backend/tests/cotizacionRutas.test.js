@@ -1,5 +1,3 @@
-// Pruebas de integracion de las rutas de cotizacion (login real, permisos y base de datos).
-// Usan la base del .env y borran al terminar todo lo que crean.
 import request from "supertest";
 import { Op } from "sequelize";
 import { crearApp } from "../src/crearApp.js";
@@ -67,7 +65,6 @@ function solicitar(token, ventanas = [ventana()], extra = {}) {
     .send({ ventanas, ...extra });
 }
 
-// Borra en orden (despieces -> ventanas -> cotizaciones -> usuarios) lo que crean estas pruebas
 async function limpiar() {
   const usuarios = await Usuario.findAll({
     where: { email: { [Op.like]: `%${SUFIJO}` } },
@@ -415,8 +412,6 @@ describe("PUT /api/cotizaciones/:id/revisar", () => {
     });
 
     test("el fabricante envia y el servidor calcula costo y precio", async () => {
-      // Con los precios de ejemplo de la migracion 003:
-      // materiales 201142 -> con merma 5% 211199.1 -> + 50000 + 30000 = 291199.1 -> con margen 30% 378558.83
       const respuesta = await enviar(idEnRevision, cuerpoBueno);
       expect(respuesta.status).toBe(200);
       expect(respuesta.body.estado).toBe("Respondida");

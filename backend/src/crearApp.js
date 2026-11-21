@@ -9,6 +9,7 @@ import { manejarErrores, rutaNoEncontrada } from "./middleware/errores.js";
 import auth from "./controladores/auth.js";
 import catalogo from "./controladores/catalogo.js";
 import calculoRutas from "./rutas/calculoRutas.js";
+import cotizacionRutas from "./rutas/cotizacionRutas.js";
 
 const carpetaActual = path.dirname(fileURLToPath(import.meta.url));
 
@@ -35,6 +36,7 @@ export function crearApp() {
   app.use("/api/auth", auth);
   app.use("/api/catalogo", catalogo);
   app.use("/api/despiece", calculoRutas);
+  app.use("/api/cotizaciones", cotizacionRutas);
 
   // Cualquier /api desconocida responde JSON 404 (antes de las pantallas de React)
   app.use("/api", rutaNoEncontrada);

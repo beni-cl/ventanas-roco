@@ -1,0 +1,350 @@
+// Pruebas de integracion de las rutas de cotizacion (login real, permisos y base de datos).
+// Usan la base del .env y borran al terminar todo lo que crean.
+import request from "supertest";
+import { Op } from "sequelize";
+import { crearApp } from "../src/crearApp.js";
+import {
+  Cotizacion,
+  VentanaConfigurada,
+  Despiece,
+  Rol,
+  Usuario,
+  sequelize,
+} from "../src/modelos/index.js";
+import { hashearPassword } from "../src/servicios/autenticacion.js";
+
+process.env.JWT_SECRET ??= "clave_de_prueba_no_usar_en_produccion";
+
+const app = crearApp();
+const SUFIJO = "@cotizaciones.roco.test";
+const PASSWORD = "Clave1234";
+const emailCliente = `cliente${SUFIJO}`;
+const emailOtroCliente = `otro${SUFIJO}`;
+const emailFabricante = `fabricante${SUFIJO}`;
+
+const ventana = () => ({
+  anchoMm: 1780,
+  altoMm: 1120,
+  material: "Aluminio",
+  tipoPerfil: "Aluminio Corredera Línea 25",
+  colorPerfil: "Blanco",
+  tipoVidrio: "Termopanel",
+  cantidad: 2,
+});
+
+let tokenCliente;
+let tokenOtro;
+let tokenFabricante;
+let idCliente;
+let idFabricante;
+let idPrincipal;
+let idParaRevisar;
+
+async function crearUsuario(nombre, email, nombreRol) {
+  const rol = await Rol.findOne({ where: { nombre: nombreRol } });
+  return Usuario.create({
+    nombre,
+    email,
+    password_hash: await hashearPassword(PASSWORD),
+    id_rol: rol.id_rol,
+  });
+}
+
+async function iniciarSesion(email) {
+  const respuesta = await request(app)
+    .post("/api/auth/login")
+    .send({ email, password: PASSWORD });
+  return respuesta.body.token;
+}
+
+const conToken = (token) => ({ Authorization: `Bearer ${token}` });
+
+function solicitar(token, ventanas = [ventana()], extra = {}) {
+  return request(app)
+    .post("/api/cotizaciones")
+    .set(conToken(token))
+    .send({ ventanas, ...extra });
+}
+
+// Borra en orden (despieces -> ventanas -> cotizaciones -> usuarios) lo que crean estas pruebas
+async function limpiar() {
+  const usuarios = await Usuario.findAll({
+    where: { email: { [Op.like]: `%${SUFIJO}` } },
+  });
+  const idsUsuarios = usuarios.map((u) => u.id_usuario);
+  if (idsUsuarios.length === 0) return;
+
+  const cotizaciones = await Cotizacion.findAll({
+    where: { id_cliente: { [Op.in]: idsUsuarios } },
+  });
+  const idsCotizaciones = cotizaciones.map((c) => c.id_cotizacion);
+  if (idsCotizaciones.length > 0) {
+    const ventanas = await VentanaConfigurada.findAll({
+      where: { id_cotizacion: { [Op.in]: idsCotizaciones } },
+    });
+    const idsVentanas = ventanas.map((v) => v.id_configuracion);
+    if (idsVentanas.length > 0) {
+      await Despiece.destroy({
+        where: { id_configuracion: { [Op.in]: idsVentanas } },
+      });
+    }
+    await VentanaConfigurada.destroy({
+      where: { id_cotizacion: { [Op.in]: idsCotizaciones } },
+    });
+    await Cotizacion.destroy({
+      where: { id_cotizacion: { [Op.in]: idsCotizaciones } },
+    });
+  }
+  await Usuario.destroy({ where: { id_usuario: { [Op.in]: idsUsuarios } } });
+}
+
+beforeAll(async () => {
+  await limpiar();
+  const cliente = await crearUsuario(
+    "Cliente de Prueba",
+    emailCliente,
+    "Cliente",
+  );
+  await crearUsuario("Otro Cliente", emailOtroCliente, "Cliente");
+  const fabricante = await crearUsuario(
+    "Fabricante de Prueba",
+    emailFabricante,
+    "Fabricante",
+  );
+  idCliente = cliente.id_usuario;
+  idFabricante = fabricante.id_usuario;
+
+  tokenCliente = await iniciarSesion(emailCliente);
+  tokenOtro = await iniciarSesion(emailOtroCliente);
+  tokenFabricante = await iniciarSesion(emailFabricante);
+
+  idPrincipal = (await solicitar(tokenCliente)).body.id_cotizacion;
+  idParaRevisar = (await solicitar(tokenCliente)).body.id_cotizacion;
+});
+
+afterAll(async () => {
+  await limpiar();
+  await sequelize.close();
+});
+
+describe("POST /api/cotizaciones", () => {
+  test("un cliente con sesion crea una cotizacion Pendiente", async () => {
+    const respuesta = await solicitar(tokenCliente);
+    expect(respuesta.status).toBe(201);
+    expect(respuesta.body.numero_orden).toMatch(/^COT-\d{4}-\d{5}$/);
+    expect(respuesta.body.estado).toBe("Pendiente");
+  });
+
+  test("sin token responde 401", async () => {
+    const respuesta = await request(app)
+      .post("/api/cotizaciones")
+      .send({ ventanas: [ventana()] });
+    expect(respuesta.status).toBe(401);
+  });
+
+  test("un fabricante no puede solicitar cotizaciones (403)", async () => {
+    const respuesta = await solicitar(tokenFabricante);
+    expect(respuesta.status).toBe(403);
+  });
+
+  test("con una lista de ventanas vacia responde 400", async () => {
+    const respuesta = await solicitar(tokenCliente, []);
+    expect(respuesta.status).toBe(400);
+    expect(respuesta.body.error).toBe("Debe haber al menos una ventana");
+  });
+
+  test("si una ventana es invalida no se guarda nada", async () => {
+    const antes = await Cotizacion.count({ where: { id_cliente: idCliente } });
+    const mala = { ...ventana(), anchoMm: 100 };
+    const respuesta = await solicitar(tokenCliente, [ventana(), mala]);
+    const despues = await Cotizacion.count({
+      where: { id_cliente: idCliente },
+    });
+    expect(respuesta.status).toBe(400);
+    expect(respuesta.body.error).toMatch(/^Ventana 2:/);
+    expect(despues).toBe(antes);
+  });
+
+  test("ignora estado, precio y cliente que el cliente intente enviar", async () => {
+    const respuesta = await solicitar(tokenCliente, [ventana()], {
+      estado: "Respondida",
+      precio_final: 1,
+      costo_neto: 1,
+      congelado: true,
+      id_cliente: 999999,
+    });
+    expect(respuesta.status).toBe(201);
+    expect(respuesta.body.estado).toBe("Pendiente");
+
+    const guardada = await Cotizacion.findByPk(respuesta.body.id_cotizacion);
+    expect(guardada.precio_final).toBeNull();
+    expect(guardada.costo_neto).toBeNull();
+    expect(guardada.congelado).toBe(false);
+    expect(guardada.id_cliente).toBe(idCliente);
+  });
+});
+
+describe("GET /api/cotizaciones/mias", () => {
+  test("el cliente ve sus cotizaciones", async () => {
+    const respuesta = await request(app)
+      .get("/api/cotizaciones/mias")
+      .set(conToken(tokenCliente));
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body.some((c) => c.id_cotizacion === idPrincipal)).toBe(
+      true,
+    );
+  });
+
+  test("otro cliente no ve las cotizaciones ajenas", async () => {
+    const respuesta = await request(app)
+      .get("/api/cotizaciones/mias")
+      .set(conToken(tokenOtro));
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body).toEqual([]);
+  });
+
+  test("no muestra precio ni costos mientras no este Respondida", async () => {
+    const respuesta = await request(app)
+      .get("/api/cotizaciones/mias")
+      .set(conToken(tokenCliente));
+    const cotizacion = respuesta.body.find(
+      (c) => c.id_cotizacion === idPrincipal,
+    );
+    expect(cotizacion.precio_final).toBeNull();
+    expect(cotizacion.costo_neto).toBeUndefined();
+    expect(cotizacion.margen_aplicado).toBeUndefined();
+  });
+
+  test("un fabricante no tiene acceso a esta lista (403)", async () => {
+    const respuesta = await request(app)
+      .get("/api/cotizaciones/mias")
+      .set(conToken(tokenFabricante));
+    expect(respuesta.status).toBe(403);
+  });
+
+  test("sin token responde 401", async () => {
+    const respuesta = await request(app).get("/api/cotizaciones/mias");
+    expect(respuesta.status).toBe(401);
+  });
+});
+
+describe("GET /api/cotizaciones/:id", () => {
+  test("el dueño ve sus ventanas pero no despiece ni costos", async () => {
+    const respuesta = await request(app)
+      .get(`/api/cotizaciones/${idPrincipal}`)
+      .set(conToken(tokenCliente));
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body.ventanas).toHaveLength(1);
+    expect(respuesta.body.ventanas[0].ancho_mm).toBe(1780);
+    expect(respuesta.body.ventanas[0].despiece).toBeUndefined();
+    expect(respuesta.body.costo_neto).toBeUndefined();
+  });
+
+  test("otro cliente recibe 404 (no se revela que existe)", async () => {
+    const respuesta = await request(app)
+      .get(`/api/cotizaciones/${idPrincipal}`)
+      .set(conToken(tokenOtro));
+    expect(respuesta.status).toBe(404);
+  });
+
+  test("el fabricante ve despiece y campos de costos", async () => {
+    const respuesta = await request(app)
+      .get(`/api/cotizaciones/${idPrincipal}`)
+      .set(conToken(tokenFabricante));
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body.ventanas[0].despiece.superficie_vidrio_m2).toBe(1.99);
+    expect(respuesta.body).toHaveProperty("costo_neto");
+    expect(respuesta.body).toHaveProperty("margen_aplicado");
+  });
+
+  test("un id que no es numero responde 400", async () => {
+    const respuesta = await request(app)
+      .get("/api/cotizaciones/abc")
+      .set(conToken(tokenCliente));
+    expect(respuesta.status).toBe(400);
+  });
+
+  test("un id que no existe responde 404", async () => {
+    const respuesta = await request(app)
+      .get("/api/cotizaciones/999999")
+      .set(conToken(tokenCliente));
+    expect(respuesta.status).toBe(404);
+  });
+});
+
+describe("GET /api/fabricante/solicitudes", () => {
+  test("el fabricante ve las solicitudes pendientes sin precios", async () => {
+    const respuesta = await request(app)
+      .get("/api/fabricante/solicitudes")
+      .set(conToken(tokenFabricante));
+    expect(respuesta.status).toBe(200);
+    const solicitud = respuesta.body.find(
+      (s) => s.id_cotizacion === idPrincipal,
+    );
+    expect(solicitud.estado).toBe("Pendiente");
+    expect(solicitud.cliente).toBe("Cliente de Prueba");
+    expect(solicitud.precio_final).toBeUndefined();
+  });
+
+  test("un cliente no puede ver las solicitudes (403)", async () => {
+    const respuesta = await request(app)
+      .get("/api/fabricante/solicitudes")
+      .set(conToken(tokenCliente));
+    expect(respuesta.status).toBe(403);
+  });
+
+  test("un estado que no corresponde responde 400", async () => {
+    const respuesta = await request(app)
+      .get("/api/fabricante/solicitudes?estado=Respondida")
+      .set(conToken(tokenFabricante));
+    expect(respuesta.status).toBe(400);
+  });
+
+  test("sin token responde 401", async () => {
+    const respuesta = await request(app).get("/api/fabricante/solicitudes");
+    expect(respuesta.status).toBe(401);
+  });
+});
+
+describe("PUT /api/cotizaciones/:id/revisar", () => {
+  test("el fabricante pasa la cotizacion a En Revisión y queda asignado", async () => {
+    const respuesta = await request(app)
+      .put(`/api/cotizaciones/${idParaRevisar}/revisar`)
+      .set(conToken(tokenFabricante));
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body.estado).toBe("En Revisión");
+
+    const guardada = await Cotizacion.findByPk(idParaRevisar);
+    expect(guardada.estado).toBe("En Revisión");
+    expect(guardada.id_fabricante).toBe(idFabricante);
+  });
+
+  test("revisar dos veces la misma cotizacion responde 409", async () => {
+    const respuesta = await request(app)
+      .put(`/api/cotizaciones/${idParaRevisar}/revisar`)
+      .set(conToken(tokenFabricante));
+    expect(respuesta.status).toBe(409);
+    expect(respuesta.body.error).toBeDefined();
+  });
+
+  test("un cliente no puede revisar (403)", async () => {
+    const respuesta = await request(app)
+      .put(`/api/cotizaciones/${idPrincipal}/revisar`)
+      .set(conToken(tokenCliente));
+    expect(respuesta.status).toBe(403);
+  });
+
+  test("una cotizacion que no existe responde 404", async () => {
+    const respuesta = await request(app)
+      .put("/api/cotizaciones/999999/revisar")
+      .set(conToken(tokenFabricante));
+    expect(respuesta.status).toBe(404);
+  });
+
+  test("un id invalido responde 400", async () => {
+    const respuesta = await request(app)
+      .put("/api/cotizaciones/abc/revisar")
+      .set(conToken(tokenFabricante));
+    expect(respuesta.status).toBe(400);
+  });
+});

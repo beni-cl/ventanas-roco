@@ -1,49 +1,51 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, User, Phone, MapPin, AlertCircle } from 'lucide-react';
-import { api } from '../../servicios/api';
-import { useAuth } from '../../contexto/AuthContext';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Lock, Mail, User, Phone, MapPin, AlertCircle } from "lucide-react";
+import { api } from "../../servicios/api";
+import { useAuth } from "../../contexto/AuthContext";
 
 export function Login() {
   const [esRegistro, setEsRegistro] = useState(false);
   const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState('');
-  const [mensajeExito, setMensajeExito] = useState('');
+  const [error, setError] = useState("");
+  const [mensajeExito, setMensajeExito] = useState("");
 
   // Campos del formulario
-  const [nombre, setNombre] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [telefono, setTelefono] = useState('');
-  const [direccion, setDireccion] = useState('');
+  const [nombre, setNombre] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [direccion, setDireccion] = useState("");
 
   const { iniciarSesion } = useAuth();
   const navigate = useNavigate();
 
   const manejarSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setMensajeExito('');
+    setError("");
+    setMensajeExito("");
     setCargando(true);
 
     try {
       if (esRegistro) {
         // POST /api/auth/registro
         await api.registro({ nombre, email, password, telefono, direccion });
-        setMensajeExito('Cuenta creada exitosamente. Ahora puedes iniciar sesión.');
+        setMensajeExito(
+          "Cuenta creada exitosamente. Ahora puedes iniciar sesión.",
+        );
         setEsRegistro(false);
-        setPassword('');
+        setPassword("");
       } else {
         // POST /api/auth/login
         const respuesta = await api.login(email, password);
         iniciarSesion(respuesta);
-        setPassword(''); // Limpiar de memoria inmediatamente
+        setPassword(""); // Limpiar de memoria inmediatamente
 
         // Redirección según rol
-        if (respuesta.rol === 'Fabricante') {
-          navigate('/fabricante/dashboard');
+        if (respuesta.rol === "Fabricante") {
+          navigate("/fabricante/dashboard");
         } else {
-          navigate('/configurador');
+          navigate("/configurador");
         }
       }
     } catch (err) {
@@ -57,12 +59,14 @@ export function Login() {
     <div className="max-w-md mx-auto mt-8 bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200">
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-slate-900">
-          {esRegistro ? 'Crear Cuenta de Cliente' : 'Bienvenido a ROCO Ventanas'}
+          {esRegistro
+            ? "Crear Cuenta de Cliente"
+            : "Bienvenido a ROCO Ventanas"}
         </h2>
         <p className="text-slate-500 text-sm mt-1">
           {esRegistro
-            ? 'Regístrate para cotizar tus ventanas a medida'
-            : 'Ingresa tus credenciales para continuar'}
+            ? "Regístrate para cotizar tus ventanas a medida"
+            : "Ingresa tus credenciales para continuar"}
         </p>
       </div>
 
@@ -82,9 +86,14 @@ export function Login() {
       <form onSubmit={manejarSubmit} className="space-y-4">
         {esRegistro && (
           <div>
-            <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Nombre Completo *</label>
+            <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
+              Nombre Completo *
+            </label>
             <div className="relative">
-              <User size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
+              <User
+                size={16}
+                className="absolute left-3.5 top-3.5 text-slate-400"
+              />
               <input
                 type="text"
                 required
@@ -98,9 +107,14 @@ export function Login() {
         )}
 
         <div>
-          <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Correo Electrónico *</label>
+          <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
+            Correo Electrónico *
+          </label>
           <div className="relative">
-            <Mail size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
+            <Mail
+              size={16}
+              className="absolute left-3.5 top-3.5 text-slate-400"
+            />
             <input
               type="email"
               required
@@ -113,9 +127,14 @@ export function Login() {
         </div>
 
         <div>
-          <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Contraseña *</label>
+          <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
+            Contraseña *
+          </label>
           <div className="relative">
-            <Lock size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
+            <Lock
+              size={16}
+              className="absolute left-3.5 top-3.5 text-slate-400"
+            />
             <input
               type="password"
               required
@@ -130,9 +149,14 @@ export function Login() {
         {esRegistro && (
           <>
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Teléfono (Opcional)</label>
+              <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
+                Teléfono (Opcional)
+              </label>
               <div className="relative">
-                <Phone size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
+                <Phone
+                  size={16}
+                  className="absolute left-3.5 top-3.5 text-slate-400"
+                />
                 <input
                   type="tel"
                   value={telefono}
@@ -144,9 +168,14 @@ export function Login() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Dirección (Opcional)</label>
+              <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
+                Dirección (Opcional)
+              </label>
               <div className="relative">
-                <MapPin size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
+                <MapPin
+                  size={16}
+                  className="absolute left-3.5 top-3.5 text-slate-400"
+                />
                 <input
                   type="text"
                   value={direccion}
@@ -164,28 +193,23 @@ export function Login() {
           disabled={cargando}
           className="w-full bg-blue-900 hover:bg-blue-800 disabled:opacity-50 text-white font-bold py-3 rounded-xl shadow-md transition mt-2"
         >
-          {cargando ? 'Procesando...' : esRegistro ? 'Registrarme' : 'Ingresar'}
+          {cargando ? "Procesando..." : esRegistro ? "Registrarme" : "Ingresar"}
         </button>
       </form>
-
-      {/* Pista rápida para pruebas con mocks */}
-      {!esRegistro && (
-        <p className="text-[11px] text-slate-400 text-center mt-4 bg-slate-50 p-2 rounded-lg border border-slate-100">
-          Modo prueba: usa cualquier correo para entrar como <strong>Cliente</strong>, o incluye <code>gerardo</code> en el correo para entrar como <strong>Fabricante</strong>.
-        </p>
-      )}
 
       <div className="mt-6 pt-4 border-t border-slate-100 text-center">
         <button
           type="button"
           onClick={() => {
             setEsRegistro(!esRegistro);
-            setError('');
-            setMensajeExito('');
+            setError("");
+            setMensajeExito("");
           }}
           className="text-sm text-blue-900 hover:underline font-semibold"
         >
-          {esRegistro ? '¿Ya tienes cuenta? Inicia sesión aquí' : '¿Eres cliente nuevo? Regístrate aquí'}
+          {esRegistro
+            ? "¿Ya tienes cuenta? Inicia sesión aquí"
+            : "¿Eres cliente nuevo? Regístrate aquí"}
         </button>
       </div>
     </div>

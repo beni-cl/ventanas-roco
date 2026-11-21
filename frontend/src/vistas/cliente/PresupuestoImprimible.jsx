@@ -1,20 +1,21 @@
-import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Printer, ArrowLeft, AlertCircle } from 'lucide-react';
-import { api } from '../../servicios/api';
-import { useAuth } from '../../contexto/AuthContext';
+import { useEffect, useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import { Printer, ArrowLeft, AlertCircle } from "lucide-react";
+import { api } from "../../servicios/api";
+import { useAuth } from "../../contexto/AuthContext";
 
 export function PresupuestoImprimible() {
   const { id } = useParams();
   const { usuario } = useAuth();
   const [cotizacion, setCotizacion] = useState(null);
   const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    api.getCotizacionDetalle(id)
+    api
+      .getCotizacionDetalle(id)
       .then((data) => {
-        if (!data) throw new Error('No se encontró el presupuesto solicitado.');
+        if (!data) throw new Error("No se encontró el presupuesto solicitado.");
         setCotizacion(data);
       })
       .catch((err) => setError(err.message))
@@ -22,14 +23,30 @@ export function PresupuestoImprimible() {
   }, [id]);
 
   if (cargando) {
-    return <div className="text-center py-12 text-slate-500">Generando vista de presupuesto...</div>;
+    return (
+      <div className="text-center py-12 text-slate-500">
+        Generando vista de presupuesto...
+      </div>
+    );
   }
 
   if (error || !cotizacion) {
     return (
       <div className="max-w-xl mx-auto p-6 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm flex items-center gap-2">
         <AlertCircle size={18} />
-        <span>{error || 'Presupuesto no disponible.'}</span>
+        <span>{error || "Presupuesto no disponible."}</span>
+      </div>
+    );
+  }
+
+  if (cotizacion.estado !== "Respondida") {
+    return (
+      <div className="max-w-xl mx-auto p-6 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-sm flex items-center gap-2">
+        <AlertCircle size={18} />
+        <span>
+          El presupuesto estará disponible cuando el fabricante responda tu
+          solicitud.
+        </span>
       </div>
     );
   }
@@ -57,25 +74,43 @@ export function PresupuestoImprimible() {
         {/* Encabezado Documento */}
         <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6">
           <div>
-            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">ROCO Ventanas</h1>
-            <p className="text-xs text-slate-500 mt-1">Fabricación a Medida en Aluminio y PVC</p>
+            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+              ROCO Ventanas
+            </h1>
+            <p className="text-xs text-slate-500 mt-1">
+              Fabricación a Medida en Aluminio y PVC
+            </p>
           </div>
           <div className="text-right">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Presupuesto Formal</span>
-            <span className="text-lg font-mono font-bold text-blue-900">{cotizacion.numeroOrden}</span>
-            <span className="text-xs text-slate-500 block mt-0.5">Fecha: {cotizacion.fecha}</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+              Presupuesto Formal
+            </span>
+            <span className="text-lg font-mono font-bold text-blue-900">
+              {cotizacion.numeroOrden}
+            </span>
+            <span className="text-xs text-slate-500 block mt-0.5">
+              Fecha: {cotizacion.fecha}
+            </span>
           </div>
         </div>
 
         {/* Datos del Cliente */}
         <div className="grid grid-cols-2 gap-4 py-6 border-b border-slate-200 text-sm">
           <div>
-            <span className="text-xs uppercase font-bold text-slate-400 block">Cliente</span>
-            <span className="font-semibold text-slate-900">{usuario?.nombre}</span>
+            <span className="text-xs uppercase font-bold text-slate-400 block">
+              Cliente
+            </span>
+            <span className="font-semibold text-slate-900">
+              {usuario?.nombre}
+            </span>
           </div>
           <div className="text-right">
-            <span className="text-xs uppercase font-bold text-slate-400 block">Estado</span>
-            <span className="font-semibold text-emerald-700">{cotizacion.estado}</span>
+            <span className="text-xs uppercase font-bold text-slate-400 block">
+              Estado
+            </span>
+            <span className="font-semibold text-emerald-700">
+              {cotizacion.estado}
+            </span>
           </div>
         </div>
 
@@ -94,17 +129,23 @@ export function PresupuestoImprimible() {
               <tr>
                 <td className="py-4">
                   <p className="font-bold text-slate-900">{cotizacion.serie}</p>
-                  <p className="text-xs text-slate-600 mt-0.5">Cristal: {cotizacion.vidrio}</p>
-                  <p className="text-xs text-slate-600">Acabado / Color: {cotizacion.color}</p>
+                  <p className="text-xs text-slate-600 mt-0.5">
+                    Cristal: {cotizacion.vidrio}
+                  </p>
+                  <p className="text-xs text-slate-600">
+                    Acabado / Color: {cotizacion.color}
+                  </p>
                 </td>
                 <td className="py-4 font-mono text-slate-700">
                   {cotizacion.ancho} x {cotizacion.alto} mm
                 </td>
-                <td className="py-4 text-center font-mono">{cotizacion.cantidad}</td>
+                <td className="py-4 text-center font-mono">
+                  {cotizacion.cantidad}
+                </td>
                 <td className="py-4 text-right font-mono font-bold text-slate-900">
                   {cotizacion.precioFinal
-                    ? `$${Number(cotizacion.precioFinal).toLocaleString('es-CL')} CLP`
-                    : 'Pendiente'}
+                    ? `$${Number(cotizacion.precioFinal).toLocaleString("es-CL")} CLP`
+                    : "Pendiente"}
                 </td>
               </tr>
             </tbody>
@@ -118,8 +159,8 @@ export function PresupuestoImprimible() {
               <span>TOTAL PRESUPUESTO:</span>
               <span className="font-mono text-xl text-blue-900">
                 {cotizacion.precioFinal
-                  ? `$${Number(cotizacion.precioFinal).toLocaleString('es-CL')} CLP`
-                  : 'Por definir'}
+                  ? `$${Number(cotizacion.precioFinal).toLocaleString("es-CL")} CLP`
+                  : "Por definir"}
               </span>
             </div>
             <p className="text-[11px] text-slate-400 text-right">
@@ -130,7 +171,8 @@ export function PresupuestoImprimible() {
 
         {/* Pie legal */}
         <div className="mt-12 pt-4 border-t border-slate-100 text-center text-xs text-slate-400">
-          Documento generado por el sistema de cotizaciones ROCO Ventanas. Validez de la oferta: 15 días corridos.
+          Documento generado por el sistema de cotizaciones ROCO Ventanas.
+          Validez de la oferta: 15 días corridos.
         </div>
       </div>
     </div>

@@ -1,6 +1,17 @@
 const API_URL = import.meta.env.VITE_API_URL || "/api";
 
-const INVENTARIO_SIMULADO = true;
+const INVENTARIO_SIMULADO = false;
+
+const adaptarMaterial = (m) => ({
+  id: m.id_material,
+  nombre: m.nombre_insumo,
+  unidad: m.unidad_medida,
+});
+
+const adaptarInventario = (m) => ({
+  ...adaptarMaterial(m),
+  precio: Number(m.precio_costo),
+});
 
 const mockMateriales = [
   {
@@ -181,7 +192,7 @@ export const api = {
         unidad,
       }));
     }
-    return request("/catalogo/materiales");
+    return (await request("/catalogo/materiales")).map(adaptarMaterial);
   },
 
   crearCotizacion: async (payload) => {
@@ -253,7 +264,7 @@ export const api = {
 
   getInventario: async () => {
     if (INVENTARIO_SIMULADO) return mockMateriales;
-    return request("/inventario");
+    return (await request("/inventario")).map(adaptarInventario);
   },
 
   actualizarPrecioMaterial: async (id, precio) => {
@@ -262,9 +273,10 @@ export const api = {
       if (material) material.precio = Number(precio);
       return material;
     }
-    return request(`/inventario/${id}`, {
+    const material = await request(`/inventario/${id}`, {
       method: "PUT",
-      body: JSON.stringify({ precio }),
+      body: JSON.stringify({ precio_costo: Number(precio) }),
     });
+    return adaptarInventario(material);
   },
 };

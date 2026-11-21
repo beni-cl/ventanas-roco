@@ -10,6 +10,7 @@ import catalogo from "./controladores/catalogo.js";
 import calculoRutas from "./rutas/calculoRutas.js";
 import cotizacionRutas from "./rutas/cotizacionRutas.js";
 import fabricanteRutas from "./rutas/fabricanteRutas.js";
+import inventarioRutas from "./rutas/inventarioRutas.js";
 
 const carpetaActual = path.dirname(fileURLToPath(import.meta.url));
 
@@ -39,7 +40,7 @@ export function crearApp() {
   app.use("/api/despiece", calculoRutas);
   app.use("/api/cotizaciones", cotizacionRutas);
   app.use("/api/fabricante", fabricanteRutas);
-
+  app.use("/api/inventario", inventarioRutas);
   app.use("/api", rutaNoEncontrada);
 
   if (fs.existsSync(path.join(carpetaFrontend, "index.html"))) {

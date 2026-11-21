@@ -1,5 +1,4 @@
-// Arma la aplicación Express (sin encenderla). Así las pruebas con Supertest
-// pueden usarla sin abrir un puerto. El servidor se enciende en app.js.
+
 import express from "express";
 import path from "node:path";
 import fs from "node:fs";
@@ -9,17 +8,16 @@ import { limitadorGeneral } from "./middleware/limitadores.js";
 import { manejarErrores, rutaNoEncontrada } from "./middleware/errores.js";
 import auth from "./controladores/auth.js";
 import catalogo from "./controladores/catalogo.js";
+import calculoRutas from "./rutas/calculoRutas.js";
 
 const carpetaActual = path.dirname(fileURLToPath(import.meta.url));
 
-// Dónde queda el React ya compilado (npm run build). Se puede cambiar con FRONTEND_DIST.
 const carpetaFrontend =
   process.env.FRONTEND_DIST || path.join(carpetaActual, "..", "..", "frontend", "dist");
 
 export function crearApp() {
   const app = express();
 
-  // Detrás del proxy de la plataforma (Render, Railway...) la IP real viene en un encabezado
   app.set("trust proxy", 1);
   app.use(express.json({ limit: "100kb" }));
   app.use("/api", limitadorGeneral);
@@ -36,6 +34,7 @@ export function crearApp() {
 
   app.use("/api/auth", auth);
   app.use("/api/catalogo", catalogo);
+  app.use("/api/despiece", calculoRutas);
 
   // Cualquier /api desconocida responde JSON 404 (antes de las pantallas de React)
   app.use("/api", rutaNoEncontrada);

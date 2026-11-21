@@ -40,3 +40,29 @@ export function calcularCostoMaterialesVentanas(ventanas) {
   }
   return calcularCostoMateriales(lineas);
 }
+
+export function calcularDesgloseVentanas(ventanas) {
+  if (!Array.isArray(ventanas) || ventanas.length === 0) {
+    throw new Error("La cotizacion no tiene ventanas");
+  }
+  const lineasPerfil = [];
+  const lineasVidrio = [];
+  for (const ventana of ventanas) {
+    if (ventana === null || typeof ventana !== "object") {
+      throw new Error("Los datos de la ventana no son validos");
+    }
+    const cantidad = Number(ventana.cantidad);
+    lineasPerfil.push({
+      cantidad: Number(ventana.metros_lineales) * cantidad,
+      precio_costo: ventana.precio_perfil_metro,
+    });
+    lineasVidrio.push({
+      cantidad: Number(ventana.superficie_vidrio_m2) * cantidad,
+      precio_costo: ventana.precio_vidrio_m2,
+    });
+  }
+  return {
+    perfiles: calcularCostoMateriales(lineasPerfil),
+    vidrio: calcularCostoMateriales(lineasVidrio),
+  };
+}

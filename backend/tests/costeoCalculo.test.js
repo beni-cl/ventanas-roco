@@ -1,6 +1,7 @@
 import {
   promedioPrecios,
   calcularCostoMaterialesVentanas,
+  calcularDesgloseVentanas,
 } from "../src/servicios/costeoCalculo.js";
 
 const ventanaBase = () => ({
@@ -95,5 +96,30 @@ describe("calcularCostoMaterialesVentanas", () => {
     expect(() => calcularCostoMaterialesVentanas([null])).toThrow(
       "Los datos de la ventana no son validos",
     );
+  });
+  describe("calcularDesgloseVentanas", () => {
+    test("separa el costo de perfiles y el de vidrio", () => {
+      const desglose = calcularDesgloseVentanas([ventanaBase()]);
+      expect(desglose.perfiles).toBeCloseTo(46320, 2);
+      expect(desglose.vidrio).toBeCloseTo(154822, 2);
+    });
+
+    test("suma varias ventanas", () => {
+      const una = { ...ventanaBase(), cantidad: 1 };
+      const desglose = calcularDesgloseVentanas([una, una]);
+      expect(desglose.perfiles).toBeCloseTo(46320, 2);
+      expect(desglose.vidrio).toBeCloseTo(154822, 2);
+    });
+
+    test("rechaza una lista vacia", () => {
+      expect(() => calcularDesgloseVentanas([])).toThrow(
+        "La cotizacion no tiene ventanas",
+      );
+    });
+
+    test("rechaza un precio de perfil faltante", () => {
+      const ventana = { ...ventanaBase(), precio_perfil_metro: undefined };
+      expect(() => calcularDesgloseVentanas([ventana])).toThrow(/precio/);
+    });
   });
 });

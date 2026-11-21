@@ -8,6 +8,7 @@ import {
 import { ErrorHttp } from "./errorHttp.js";
 import {
   calcularCostoMaterialesVentanas,
+  calcularDesgloseVentanas,
   promedioPrecios,
 } from "./costeoCalculo.js";
 
@@ -15,10 +16,7 @@ const CATEGORIAS_PERFIL = ["PerfilAluminio", "PerfilPVC"];
 
 const escaparLike = (texto) => texto.replace(/[\\%_]/g, "\\$&");
 
-export async function calcularMaterialesDeCotizacion(
-  idCotizacion,
-  transaccion,
-) {
+async function cargarDatosDeCosteo(idCotizacion, transaccion) {
   const ventanas = await VentanaConfigurada.findAll({
     where: { id_cotizacion: idCotizacion },
     include: [{ model: Despiece, as: "despiece" }],
@@ -89,6 +87,21 @@ export async function calcularMaterialesDeCotizacion(
       precio_vidrio_m2: vidrio.precio_costo,
     });
   }
+  return datos;
+}
 
+export async function calcularMaterialesDeCotizacion(
+  idCotizacion,
+  transaccion,
+) {
+  const datos = await cargarDatosDeCosteo(idCotizacion, transaccion);
   return calcularCostoMaterialesVentanas(datos);
+}
+
+export async function calcularDesgloseDeCotizacion(idCotizacion, transaccion) {
+  const datos = await cargarDatosDeCosteo(idCotizacion, transaccion);
+  return {
+    ...calcularDesgloseVentanas(datos),
+    total: calcularCostoMaterialesVentanas(datos),
+  };
 }

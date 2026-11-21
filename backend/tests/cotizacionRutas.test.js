@@ -293,7 +293,7 @@ describe("GET /api/fabricante/solicitudes", () => {
 
   test("un estado que no corresponde responde 400", async () => {
     const respuesta = await request(app)
-      .get("/api/fabricante/solicitudes?estado=Respondida")
+      .get("/api/fabricante/solicitudes?estado=Cancelada")
       .set(conToken(tokenFabricante));
     expect(respuesta.status).toBe(400);
   });
@@ -547,6 +547,63 @@ describe("PUT /api/cotizaciones/:id/revisar", () => {
     test("un id invalido responde 400", async () => {
       const respuesta = await enviar("abc", cuerpoBueno);
       expect(respuesta.status).toBe(400);
+    });
+  });
+  describe("Datos para el front", () => {
+    test("la lista del cliente incluye los datos de la ventana", async () => {
+      const respuesta = await request(app)
+        .get("/api/cotizaciones/mias")
+        .set(conToken(tokenCliente));
+      const cotizacion = respuesta.body.find(
+        (c) => c.id_cotizacion === idPrincipal,
+      );
+      expect(cotizacion.ventanas).toHaveLength(1);
+      expect(cotizacion.ventanas[0].ancho_mm).toBe(1780);
+      expect(cotizacion.ventanas[0].tipo_vidrio).toBe("Termopanel");
+      expect(cotizacion.ventanas[0].despiece).toBeUndefined();
+    });
+
+    test("la bandeja del fabricante incluye los datos de la ventana", async () => {
+      const respuesta = await request(app)
+        .get("/api/fabricante/solicitudes")
+        .set(conToken(tokenFabricante));
+      const solicitud = respuesta.body.find(
+        (s) => s.id_cotizacion === idPrincipal,
+      );
+      expect(solicitud.ventanas[0].tipo_perfil).toBe(
+        "Aluminio Corredera Línea 25",
+      );
+      expect(solicitud.ventanas[0].cantidad).toBe(2);
+    });
+
+    test("la bandeja permite filtrar las cotizaciones Respondidas", async () => {
+      const respuesta = await request(app)
+        .get("/api/fabricante/solicitudes?estado=Respondida")
+        .set(conToken(tokenFabricante));
+      expect(respuesta.status).toBe(200);
+      expect(respuesta.body.length).toBeGreaterThanOrEqual(1);
+      expect(respuesta.body.every((s) => s.estado === "Respondida")).toBe(true);
+    });
+
+    test("el fabricante ve el desglose de costos antes de enviar", async () => {
+      const respuesta = await request(app)
+        .get(`/api/cotizaciones/${idPrincipal}`)
+        .set(conToken(tokenFabricante));
+      const costeo = respuesta.body.costeo;
+      expect(costeo.error).toBeNull();
+      expect(costeo.perfiles).toBeCloseTo(46320, 2);
+      expect(costeo.vidrio).toBeCloseTo(154822, 2);
+      expect(costeo.accesorios).toBe(0);
+      expect(costeo.merma_porcentaje).toBe(5);
+      expect(costeo.merma_monto).toBeCloseTo(10057.1, 2);
+      expect(costeo.costo_neto).toBeCloseTo(211199.1, 2);
+    });
+
+    test("el cliente no ve el desglose de costos", async () => {
+      const respuesta = await request(app)
+        .get(`/api/cotizaciones/${idPrincipal}`)
+        .set(conToken(tokenCliente));
+      expect(respuesta.body.costeo).toBeUndefined();
     });
   });
 });

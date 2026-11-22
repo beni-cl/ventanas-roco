@@ -22,6 +22,19 @@ export function crearApp() {
   const app = express();
 
   app.set("trust proxy", 1);
+  const cabeceraIp = (process.env.CABECERA_IP_CLIENTE || "").toLowerCase();
+  if (cabeceraIp) {
+    app.use((req, res, next) => {
+      const real = req.headers[cabeceraIp];
+      if (typeof real === "string" && real.trim() !== "") {
+        Object.defineProperty(req, "ip", {
+          value: real.trim(),
+          configurable: true,
+        });
+      }
+      next();
+    });
+  }
   app.use(express.json({ limit: "100kb" }));
   app.use("/api", limitadorGeneral);
 

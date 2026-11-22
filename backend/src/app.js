@@ -1,25 +1,14 @@
 import "dotenv/config";
-import express from "express";
-import { sequelize } from "./config/baseDatos.js";
+import { crearApp } from "./crearApp.js";
 
-const app = express();
-app.use(express.json());
+if (!process.env.JWT_SECRET) {
+  console.error(
+    "Falta JWT_SECRET. Agrégalo a backend/.env (mira .env.example).",
+  );
+  process.exit(1);
+}
 
-app.get("/", (req, res) => {
-  res.json({ mensaje: "API de Ventanas Roco", prueba: "/api/salud" });
-});
-
-// Ruta de salud: responde ok solo si el servidor y la base de datos funcionan
-app.get("/api/salud", async (req, res) => {
-  try {
-    await sequelize.authenticate();
-    res.json({ estado: "ok", baseDatos: "conectada" });
-  } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ estado: "error", baseDatos: "sin conexión" });
-  }
-});
-
+const app = crearApp();
 const PUERTO = process.env.PORT || 8080;
 
 app.listen(PUERTO, () => {

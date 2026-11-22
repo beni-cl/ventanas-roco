@@ -1,0 +1,175 @@
+{
+    "metrics": {
+        "http_req_duration{expected_response:true}": {
+            "med": 222.8756,
+            "max": 1525.7116,
+            "p(90)": 280.48342,
+            "p(95)": 312.903555,
+            "avg": 234.64314629629612,
+            "min": 166.9557
+        },
+        "iterations": {
+            "count": 211,
+            "rate": 1.3905513034067383
+        },
+        "iteration_duration": {
+            "p(90)": 283.8001,
+            "p(95)": 314.19624999999996,
+            "avg": 232.97665355450232,
+            "min": 166.9557,
+            "med": 231.738,
+            "max": 480.8342
+        },
+        "http_req_duration{escenario:carga}": {
+            "p(90)": 271.9774,
+            "p(95)": 291.2375,
+            "avg": 220.5639950819672,
+            "min": 167.5947,
+            "med": 212.1898,
+            "max": 480.3176,
+            "thresholds": {
+                "p(95)<3000": false
+            }
+        },
+        "http_req_failed": {
+            "passes": 50,
+            "fails": 162,
+            "value": 0.2358490566037736
+        },
+        "vus": {
+            "value": 1,
+            "min": 0,
+            "max": 1
+        },
+        "http_req_receiving": {
+            "min": 0,
+            "med": 0,
+            "max": 14.9193,
+            "p(90)": 5.67389,
+            "p(95)": 8.011349999999995,
+            "avg": 1.3326311320754727
+        },
+        "checks{escenario:estres}": {
+            "passes": 300,
+            "fails": 0,
+            "thresholds": {
+                "rate==1": false
+            },
+            "value": 1
+        },
+        "http_req_blocked": {
+            "avg": 4.5742801886792455,
+            "min": 0,
+            "med": 0,
+            "max": 209.7634,
+            "p(90)": 0,
+            "p(95)": 28.985624999999263
+        },
+        "http_reqs": {
+            "count": 212,
+            "rate": 1.397141593944211
+        },
+        "data_sent": {
+            "rate": 298.9685302324487,
+            "count": 45365
+        },
+        "http_req_tls_handshaking": {
+            "min": 0,
+            "med": 0,
+            "max": 110.9117,
+            "p(90)": 0,
+            "p(95)": 16.968599999999572,
+            "avg": 2.6547797169811327
+        },
+        "http_req_sending": {
+            "avg": 0.5041985849056605,
+            "min": 0,
+            "med": 0.52875,
+            "max": 1.8541,
+            "p(90)": 0.7383700000000001,
+            "p(95)": 0.9013149999999988
+        },
+        "data_received": {
+            "count": 119145,
+            "rate": 785.200166087184
+        },
+        "http_req_waiting": {
+            "p(90)": 283.49073,
+            "p(95)": 314.823565,
+            "avg": 233.29062877358479,
+            "min": 157.1206,
+            "med": 224.20685,
+            "max": 1525.7116
+        },
+        "checks": {
+            "passes": 422,
+            "fails": 0,
+            "value": 1
+        },
+        "http_req_connecting": {
+            "avg": 1.5987617924528301,
+            "min": 0,
+            "med": 0,
+            "max": 35.2853,
+            "p(90)": 0,
+            "p(95)": 11.761739999999703
+        },
+        "http_req_duration": {
+            "med": 225.67965,
+            "max": 1525.7116,
+            "p(90)": 284.0962,
+            "p(95)": 315.484145,
+            "avg": 235.12745849056594,
+            "min": 166.9557
+        },
+        "vus_max": {
+            "value": 10,
+            "min": 10,
+            "max": 10
+        },
+        "http_req_failed{escenario:carga}": {
+            "passes": 0,
+            "fails": 61,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        }
+    },
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+            "responde 200": {
+                "passes": 61,
+                "fails": 0,
+                "name": "responde 200",
+                "path": "::responde 200",
+                "id": "98ed9f003132871fdd4cbb00c48e8f42"
+            },
+            "trae el corte de 1778 mm": {
+                "name": "trae el corte de 1778 mm",
+                "path": "::trae el corte de 1778 mm",
+                "id": "4fa3dcb5b6e0fc717743c1ac98220aba",
+                "passes": 61,
+                "fails": 0
+            },
+            "responde 200 o 429": {
+                "fails": 0,
+                "name": "responde 200 o 429",
+                "path": "::responde 200 o 429",
+                "id": "bc5c995432a80ca6a187674dc2f524cb",
+                "passes": 150
+            },
+            "sin errores 5xx": {
+                "path": "::sin errores 5xx",
+                "id": "4d091acae9d8ca53df7341ba88478053",
+                "passes": 150,
+                "fails": 0,
+                "name": "sin errores 5xx"
+            }
+        }
+    }
+}
